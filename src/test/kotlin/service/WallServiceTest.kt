@@ -1,52 +1,149 @@
+import exceptions.*
+import service.*
 import org.junit.Test
 
 import org.junit.Assert.*
 
-import data.service.service.WallService
-import data.*
-
 class WallServiceTest {
+    val ns = WallService
 
     @Test
-    fun addTest() {
-        val posts = WallService
-        val result = posts.add(Post(1, 1, 1, 1, "22.05.2022", "1",1, 1, true ,1,1,1,
-            1, 1, "1", 1, true, 1, null, true,
-            true, true, true, true, true, 1 ))
-
-        assertNotEquals(0, result.id)
+    fun add() {
+        ns.reset("ACHTUNG!")
+        val note = ns.add()
+        assertTrue(ns.get().contains(note))
     }
 
     @Test
-    fun updateTestTrue() {
-        val posts = WallService
-        val update = Post(1, 1, 1, 1, "22.05.2022", "1",1, 1, true ,1,1,1,
-            1, 1, "1", 1, true, 1, null, true,
-            true, true, true, true, true, 1 )
-        val result = posts.update(update)
-        assertTrue(result)
+    fun createComment_Success() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        val comment = ns.createComment(1)
+        assertTrue(ns.getComments(1).contains(comment))
     }
 
     @Test
-    fun updateTestFalse() {
-        val posts = WallService
-        val update = Post(0, 1, 1, 1, "22.05.2022", "1",1, 1, true ,1,1,1,
-            1, 1, "1", 1, true, 1, null, true,
-            true, true, true, true, true, 1 )
-        val result = posts.update(update)
-        assertFalse(result)
+    fun delete_True() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        assertTrue(ns.delete(1))
+    }
+
+    @Test
+    fun delete_False() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        ns.delete(1)
+        assertFalse(ns.delete(1))
+    }
+
+    @Test
+    fun deleteComment_True() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        ns.createComment(1)
+        assertTrue(ns.deleteComment(1))
+    }
+
+    @Test
+    fun deleteComment_False() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        ns.createComment(1)
+        ns.deleteComment(1)
+        assertFalse(ns.deleteComment(1))
+    }
+
+    @Test
+    fun edit() {
+        ns.reset("ACHTUNG!")
+        val note = Note(1, "title", "text", false)
+        ns.add()
+        val edited = ns.edit(1, "title", "text")
+        assertEquals(note, edited)
+    }
+
+    @Test
+    fun editComment() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        val comment = ns.createComment(1, "mess")
+        val edited = ns.editComment(1, "mess")
+        assertEquals(comment, edited)
+    }
+
+    @Test
+    fun get() {
+        ns.reset("ACHTUNG!")
+        val note = Note(1, "", "")
+        ns.add(note.title, note.text)
+        val list = mutableListOf(note)
+
+        assertEquals(ns.get(), list)
+
+    }
+
+    @Test
+    fun getByID_Passed() {
+        ns.reset("ACHTUNG!")
+        val note = Note(1, "", "")
+        ns.add(note.title, note.text)
+
+        val result = ns.getByID(1)
+        assertEquals(result, note)
+    }
+
+    @Test(expected = NotFoundException::class)
+    fun getByID_NotFound() {
+        ns.reset("ACHTUNG!")
+        ns.add("", "")
+        ns.getByID(2)
+    }
+
+    @Test(expected = NoteDeletedException::class)
+    fun getByID_Deleted() {
+        ns.reset("ACHTUNG!")
+        ns.add("", "")
+        ns.delete(1)
+        ns.getByID(1)
+    }
+
+    @Test
+    fun getComments_Passed() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        ns.createComment(1)
+        val list = mutableListOf(ns.createComment(1))
+        ns.deleteComment(1)
+        val comments = ns.getComments(1)
+        assertEquals(list, comments)
     }
 
 
     @Test
-    fun historyPostTestNoHistory() {
-        val posts = WallService
-        val historyPost = Post(1, 1, 1, 1, "22.05.2022", "1",1, 1, true ,1,1,1,
-            1, 1, "1", 1, true, 1, null, true,
-            true, true, true, true, true, 1 )
-        val result = posts.historyPost(historyPost)
-        assertNotEquals("Нет истории", result)
+    fun restoreComment_Success() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        val comment = ns.createComment(1, "2")
+        ns.deleteComment(1)
+        val restored = ns.restoreComment(1)
+
+        assertEquals(comment, restored)
     }
 
+    @Test(expected = CommentNotDeletedException::class)
+    fun restoreComment_NotDeleted() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        ns.createComment(1, "2")
+        ns.restoreComment(1)
+    }
 
+    @Test(expected = CommentNotFoundException::class)
+    fun restoreComment_NotFound() {
+        ns.reset("ACHTUNG!")
+        ns.add()
+        ns.createComment(1, "2")
+        ns.restoreComment(2)
+    }
 }
